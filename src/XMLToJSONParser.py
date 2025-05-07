@@ -73,7 +73,6 @@ class XMLToJSONParser:
                     raise ValueError("Many-to-many is not supported")
 
                 for class_l in classes_list:
-                    # TODO: check classes for existing ?
                     if class_l["class"] == aggregation_el.attrib['target']:
                         class_l["parameters"].append({"name": aggregation_el.attrib['source'], "type": "class"})
 
