@@ -1,53 +1,39 @@
-import os
 import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 
 class XMLConfigWriter:
     @staticmethod
-    def __find_root(classes_list):  # Assuming there is one root
-        for class_l in classes_list:
-            if class_l["isRoot"] == "true":
-                return class_l["class"]
+    def __find_class(class_name, classes_list):
+        return next((item for item in classes_list if item["class"] == class_name), None)
 
-        raise ValueError("There is no roots")
+    @staticmethod
+    def __build_xml_element(class_name, classes_list, parent_element=None):
+        class_info = XMLConfigWriter.__find_class(class_name, classes_list)
+        if not class_info:
+            return None
+
+        # If parent element is None, then it is root
+        element = ET.Element(class_name) if parent_element is None else ET.SubElement(parent_element, class_name)
+
+        for param in class_info.get("parameters", []):
+            if param["type"] == "class":
+                XMLConfigWriter.__build_xml_element(param["name"], classes_list, element)
+            else:
+                param_element = ET.SubElement(element, param["name"])
+                param_element.text = param["type"]
+
+        if not class_info.get("parameters"):  # <tag> </tag>
+            element.text = " "
+
+        return element
 
     @staticmethod
     def write_xml_config(classes_list, config_path):
-        try:
-            bts = ET.Element(XMLConfigWriter.__find_root(classes_list))
+        root = next(item for item in classes_list if item.get("isRoot") == "true")  # Assuming there is one root
+        xml_root = XMLConfigWriter.__build_xml_element(root["class"], classes_list)
 
-
-
-            ET.SubElement(bts, "id").text = "uint32"
-            ET.SubElement(bts, "name").text = "string"
-
-            mgmt = ET.SubElement(bts, "MGMT")
-            metric_job = ET.SubElement(mgmt, "MetricJob")
-            ET.SubElement(metric_job, "isFinished").text = "boolean"
-            ET.SubElement(metric_job, "jobId").text = "uint32"
-
-            # Пустые элементы с пробелом внутри
-            cplane = ET.SubElement(mgmt, "CPLANE")
-            cplane.text = " "  # Пробел вместо пустого текста
-
-            hwe = ET.SubElement(bts, "HWE")
-            ru = ET.SubElement(hwe, "RU")
-            ET.SubElement(ru, "hwRevision").text = "string"
-            ET.SubElement(ru, "id").text = "uint32"
-            ET.SubElement(ru, "ipv4Address").text = "string"
-            ET.SubElement(ru, "manufacturerName").text = "string"
-
-            comm = ET.SubElement(bts, "COMM")
-            comm.text = " "  # Пробел вместо пустого текста
-
-            # Форматируем XML с отступами (через замену строк)
-            xml_str = ET.tostring(bts, encoding="utf-8").decode()
-            xml_str = xml_str.replace("<CPLANE> </CPLANE>", "<CPLANE> </CPLANE>")  # На всякий случай
-            xml_str = xml_str.replace("<COMM> </COMM>", "<COMM> </COMM>")
-
-            # Записываем в файл
-            with open(config_path, "w", encoding="utf-8") as f:
-                f.write(xml_str)
-
-        except Exception as e:
-            raise e
+        xml_str = ET.tostring(xml_root, encoding="utf-8").decode()
+        pretty_xml = '\n'.join(minidom.parseString(xml_str).toprettyxml(indent="  ").split('\n')[1:])
+        with open(config_path, "w", encoding="utf-8") as file:
+            file.write(pretty_xml)
