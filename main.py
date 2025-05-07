@@ -1,7 +1,7 @@
 import os.path
 
-from XMLConfigWriter import XMLConfigWriter
-from XMLToJSONParser import XMLToJSONParser
+from src.XMLConfigWriter import XMLConfigWriter
+from src.XMLToJSONParser import XMLToJSONParser
 
 
 if __name__ == '__main__':
@@ -14,8 +14,3 @@ if __name__ == '__main__':
 
     config_path: str = os.path.join("out", "config.xml")
     XMLConfigWriter.write_xml_config(dataList, config_path)
-    # TODO: aggregation check, classes storage, output generation
-    # JSON - probably initially
-
-    print('Done!')
-
